@@ -1,1 +1,98 @@
-# docker-tutorial
+# Guide to Utilizing Docker for GPU-Accelerated Deep Learning Experiments
+
+Docker is a powerful platform that allows developers to package applications and their dependencies into containers, ensuring consistent performance across various environments. These containers are lightweight, portable, and isolated, making it easier to deploy and manage applications without worrying about environment discrepancies. When combined with GPU acceleration, Docker becomes even more effective, particularly for deep learning experiments, which often require significant computational power. By leveraging NVIDIA's Docker toolkit, developers can enable GPU support within containers, allowing deep learning frameworks like TensorFlow or PyTorch to utilize the full potential of the system’s GPUs. This setup enhances computational performance and accelerates model training and experimentation in a scalable and reproducible way.
+
+In this tutorial, you will learn how to install docker, use docker for GPU acceleration, create dockerfiles to setup your own image, create containers for your docker images, and run your experiments from inside the docker container.
+
+To develop with Docker, several key components are required:
+
+1. **Docker Image**: This is a lightweight, stand-alone, executable package that contains everything needed to run a piece of software, including code, runtime, libraries, environment variables, and dependencies. It is built from a Dockerfile and serves as the blueprint for containers.
+
+2. **Dockerfile**: A text file containing a set of instructions to build a Docker image. It specifies the base image, software dependencies, environment settings, and the command to execute when the container starts.
+
+3. **Docker Container**: A running instance of a Docker image. Containers are isolated environments where applications are executed. They share the host system’s OS kernel but maintain their own filesystem, networking, and resources, making them highly efficient for deployment.
+
+4. **Docker Daemon**: The background service running on the host machine that manages Docker containers, images, and other related components.
+
+## Part 1: Docker installation
+
+```NB: If you already have docker setup and installed with no sudo obligation you can skip to Part 2. Docker with GPU```
+
+This part and the next one are based on the [following tutorial](https://gist.github.com/qin-yu/d3619a68d209dd1feefd7385e43c3fc4) made by [Qin Yu](https://gist.github.com/qin-yu).
+
+### Set up the repository
+
+1. To allow apt to use a repository over HTTPS: 
+```bash
+$ sudo apt-get update
+$ sudo apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent \
+    software-properties-common
+```
+
+2. Add Docker’s official GPG key:
+```bash
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+$ sudo apt-key fingerprint 0EBFCD88
+```
+
+3. Set up the stable repository: 
+```bash
+$ sudo add-apt-repository \
+   "deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+```
+
+### Install Docker Engine - Community
+
+1. Install the latest version of Docker Engine - Community and containerd: 
+```bash
+$ sudo apt-get update
+$ sudo apt-get install docker-ce docker-ce-cli containerd.io
+```
+
+2. Verify that Docker Engine - Community is installed correctly: 
+```bash
+$ sudo docker run hello-world
+```
+
+If you get an output starting with the following:
+```bash
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+```
+It means that docker has been successfully installed on your machine.
+
+### Avoid using `sudo docker` and use `docker` instead
+
+The `docker` daemon connects to a Unix socket rather than a TCP port. By default, this socket is owned by the `root` user, and other users must use `sudo` to access it. Since the `docker` daemon runs as the `root` user, to avoid prefixing every `docker` command with `sudo`, you can create a Unix group named `docker` and add users to this group. Once the `docker` daemon starts, it grants access to the Unix socket to all members of the `docker` group, allowing them to use `docker` without `root` privileges.
+
+1. Create the docker group:
+```bash
+$ sudo groupadd docker
+```
+
+2. Add your user to the docker group:
+```bash
+$ sudo usermod -aG docker $USER
+```
+
+3. Log out and log back in so that your group membership is re-evaluated. On Linux, you can also run the following command to activate the changes to groups:
+```bash
+$ newgrp docker
+```
+
+4. Verify that you can run docker commands without sudo:
+```bash
+$ docker run hello-world
+```
+
+You should get the same as before, if yes then you now can use `docker` with no need of `sudo`.
+
+## Part 2: Docker with GPU and Nvidia
+
+For this part, you need to make sure Nvidia driver, latest, test 
