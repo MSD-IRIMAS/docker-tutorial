@@ -60,6 +60,12 @@ $ sudo apt-get install docker-ce docker-ce-cli containerd.io
 $ sudo docker run hello-world
 ```
 
+Let's first break down the above command:
+
+- `sudo docker`: using docker cli
+- `run <image_name>`: creates and runs a container using the setup of the docker image `<image_name>`, in this case the `hello-world` image.
+Such image and many others, exists on the [docker hub](https://hub.docker.com/).
+
 If you get an output starting with the following:
 ```bash
 Hello from Docker!
@@ -95,4 +101,58 @@ You should get the same as before, if yes then you now can use `docker` with no 
 
 ## Part 2: Docker with GPU and Nvidia
 
-For this part, you need to make sure Nvidia driver, latest, test 
+For this part, you need to make sure Nvidia driver, latest, tested and proprietary (Do not download any version of Nvidia driver especially on Ubuntu you may crash the GUI and have to purge Nvidia from the kernel)
+
+### Make sure Nvidia is installed and ready
+
+This can be easily done using the following command <br>
+```bash
+$ nvidia-smi
+```
+The expected output should look something like that:
+```bash
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI Driver Version: <driver_version>  CUDA Version: <cuda_version>   |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  <gpu_name>       Off   | <bus_id>       Off   |       <ecc_status>     |
+|  30%   40C    P8     15W / 300W |    500MiB / 16280MiB |      0%    Default |
+|                               |                      |                  Off |
++-------------------------------+----------------------+----------------------+
+
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|    0   N/A  N/A     <pid>    C   <process_name>           <memory_usage>MiB |
++-----------------------------------------------------------------------------+
+```
+
+### Install NVIDIA Container Toolkit
+
+```bash
+$ distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+$ curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+$ curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+$ curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg   && curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list |     sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' |     sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+$ sudo apt-get update
+$ sudo apt-get install nvidia-container-toolkit
+```
+
+And then reboot your system with:
+```bash
+$ sudo reboot
+```
+
+### Pull the nivdia/cuda docker image
+
+In order to use GPU acceleration with docker, you would need to pull the associated nvidia/cuda docker image. Each docker image comes with many possible tags, specifying which version to use. In this case, the tag should specify 2 information, which cuda version to use and which operating system to use, for instance, when running `nvidia-smi` on your system and findin that the `<cuda version>` is `12.4` and you want an Ubuntu 22.04 as backend, you would need to choose the tag `12.4.1-base-ubuntu22.04`. In order to pull that image and test if docker is really detecting and associating your GPU hardware to its framework, you would need to run the following:
+```bash
+docker run --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
+```
+
+The `--gpus all` options tells docker to use all available GPU hardware available on your computer. The image name used is `nvidia/cuda` tagged by `12.4.1-base-ubuntu22.04`, and the command to run is `nvidia-smi`. The output of this command should be the same as running `nvidia-smi` on your computer with no docker.
