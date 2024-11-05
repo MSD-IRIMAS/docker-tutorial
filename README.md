@@ -258,3 +258,49 @@ To make sure your container now can use the GPU acceleration with tensorflow, si
 This should output a list of GPU devices detected, which should be yours.
 
 Now you can simply run your code inside your docker container with GPU acceleration, have fun.
+
+## Helpful docker commands
+
+- Stopping a docker container:
+```bash
+docker stop <container-name>
+```
+- Deleting a docker container (keep in mind a container should be stopped in order to delete it):
+```bash
+docker rm <container-name>
+```
+- Restarting a docker container:
+```bash
+docker restart <container-name>
+```
+- Starting a docker container:
+```bash
+docker start <container-name>
+```
+- Listing running (non stopped) docker containers:
+```bash
+docker ps
+```
+- Listing all docker containers (running and not running):
+```bash
+docker ps -a
+```
+- Listing all docker images:
+```bash
+docker images
+```
+- Deleting an image (keep in mind you cannot delete an image that has at least one container associated to it):
+```bash
+docker image rm <image-name>:<tag>
+```
+Or without tag if you do not use tags.
+- If you ever make changes inside a docker container and want to create a new image from this container you can run (first fetch your container ID using `docker ps`):
+```bash
+docker commit <container-id> <new-image-name>:<tag>
+```
+And then you can create a new docker container using this new image:
+```bash
+docker run -it <new-image-name>:<tag>
+```
+Or without tag.
+Keep in mind that any changes done inside a docker container are saved inside that container but not the image, you YES you can override the image that created this container by simply committing to its name and overriding it.
