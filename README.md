@@ -156,3 +156,105 @@ docker run --gpus all nvidia/cuda:12.4.1-base-ubuntu22.04 nvidia-smi
 ```
 
 The `--gpus all` options tells docker to use all available GPU hardware available on your computer. The image name used is `nvidia/cuda` tagged by `12.4.1-base-ubuntu22.04`, and the command to run is `nvidia-smi`. The output of this command should be the same as running `nvidia-smi` on your computer with no docker.
+
+## Part 3: Dockerfiles and how to use them
+
+A Dockerfile is a simple, text based file with a set of instructions on how to build a Docker Image. Each line in a Dockerfile represents a step in the image building process, such as specifying the base image, installing dependencies, copying files, setting environment variables, and configuring commands to run. Dockerfiles make it easy to reproduce an environment by building images consistently across different machines. When a Dockerfile is executed, Docker reads each line and creates layers (stored in cache), making the image building process faster by reusing layers when possible.
+
+### Writing your dockerfile
+
+In order to create a Dockerfile to setup your image, simply create a file that is called `dockerfile` in your project directory. The docker file contains much information, but it comes down mostly to:
+
+1. Choosing the image your project is based on, i.e. `tensorflow.`
+2. Setting the user and group IDs, creating a non-root user to access the container through.
+3. Updating internal system.
+4. Installing dependencies.
+5. Choosing working directory.
+
+An example dockerfile can be found [here](dockerfile)
+
+The first line in that dockerfile is the image we're based on:
+```docker
+FROM tensorflow/tensorflow:2.16,1-gpu
+```
+Here we are using tensorflow image, version `2.16.1` with GPU configuration. Keep in mind that the version of tensorflow you use in your dockerfile should be well alligned with the CUDA version you pulled in the previous section.
+
+The second two lines defines 2 arguments that will be passed later, the user ID and the group ID, which when passed later should be set to the same as your user on the host machine:
+```docker
+ARG USER_ID
+ARG GROUP_ID
+```
+
+The following line creates a user with an ID and group ID called `myuser` and creates its own home directory:
+```docker
+RUN groupadd -r -g $GROUP_ID myuser && useradd -r -u $USER_ID -g myuser -m -d /home/myuser myuser
+```
+
+The following line set the shell used (required on most machines):
+```docker
+ENV SHELL /bin/bash
+```
+
+The following line creates a directory called `code` in the `myuser` home folder that we will later on put our code in, while giving full read and write access to `myuser`:
+```docker
+RUN mkdir -p /home/myuser/code && chown -R myuser:myuser /home/myuser/code
+```
+
+The following line sets the working directory:
+```docker
+WORKDIR /home/myuser/code
+```
+
+The rest of this file depends on the application of your project, containing system updates, pip updates and dependencies installation:
+```docker
+RUN apt update
+RUN pip install --upgrade pip
+RUN pip install numpy==1.23.5
+RUN pip install pandas==2.0.3
+```
+
+### Building your image using your dockerfile
+
+In order to build your image using the configuration detailed in the [dockerfile](dockerfile), you would need to run the following command:
+```bash
+docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t <my-docker-image-name>:<my-tag> .
+```
+Let's break down the above command:
+- `docker build` is a command to build a docker image.
+- `--build arg USER_ID=$(id -u)` is to specify an argument for the building step, such as the `USER_ID` which is set to your user ID on your host machine using `$(id -u)`.
+- `--build arg GROUP_ID=$(id -g)`, same as previous point but for the group ID.
+- `-t <my-docker-image-name>:<my-tag>` is to choose a name for your docker image with a specific tag, for example `-t my-app:latest`, however the tag is not necessary, if you do not plan to do many versions of your image you can simply use `-t my-app`.
+- `.` is very important, it means look for the [dockerfile](dockerfile) in the current directory where you are running this command.
+
+If no error are shown, then your docker image has successfully been built. To make sure your image is built you can run the following:
+```bash
+docker images
+```
+which lists all the images in your system, one of them should the one you just built.
+
+### Creating your first docker container on top of your built image
+
+After having built your docker image, you can now create one instance, one docker container, using that image configuration, by running the following command:
+```bash
+docker run gpus --all -it --name <my-docker-container-name> -v "$(pwd):/home/myuser/code" <my-docker-image-name>:<my-tag> <my-command>
+```
+
+Let's break the above command:
+
+- `docker run gpus -all`, same as explained before.
+- `-it` means to run the docker container in interactive mode so that we can open the container and see what is happening inside.
+- `--name <my-docker-container-name>` is to choose a name for our container.
+- `-v "$(pwd):/home/myuser/code"` creates a volume, which is a mounted folder between the host machine and the docker container itself. For instance here we are mounting the source code directory of our project, assuming it is the current working directory where we are running these commands (PS: `pwd` stands for print working directory), to the directory we already created in our [dockerfile](dockerfile) `/home/myuser/code`. You can create as many volumes as you want in this command, the more you need just add a new `-v` option with `/directory/on/host/machine:/directory/inside/docker/container` as input.
+- `<my-docker-image-name>:<my-tag>` should be replaced by the image your container is based on, the one you created before. Specifying a tag is not necessary, just if you already have one.
+- `<my-command>` is the command to be run once the container is created, usually set to `bash` to open a shell and see if setup of the container is correct.
+
+
+This will open a shell in the directory `/home/myuser/code`, if you use `ls` you should be able to see your code in that directory. Keep in mind, every change you make in your code on your host machine will now be change automatically in the container in `/hone/myuser/code` because it is mounted with a volume.
+To make sure your container now can use the GPU acceleration with tensorflow, simply open a python shell inside your container terminal and type in the following:
+```python
+>>> import tensorflow as tf
+>>> tf.config.list_physical_devices('GPU')
+```
+This should output a list of GPU devices detected, which should be yours.
+
+Now you can simply run your code inside your docker container with GPU acceleration, have fun.
