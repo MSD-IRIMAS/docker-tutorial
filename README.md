@@ -236,15 +236,16 @@ which lists all the images in your system, one of them should the one you just b
 
 After having built your docker image, you can now create one instance, one docker container, using that image configuration, by running the following command:
 ```bash
-docker run gpus --all -it --name <my-docker-container-name> -v "$(pwd):/home/myuser/code" <my-docker-image-name>:<my-tag> <my-command>
+docker run --gpus all -it --name <my-docker-container-name> -v "$(pwd):/home/myuser/code" --user $(id -u):$(id -g) <my-docker-image-name>:<my-tag> <my-command>
 ```
 
 Let's break the above command:
 
-- `docker run gpus -all`, same as explained before.
+- `docker run --gpus all`, same as explained before.
 - `-it` means to run the docker container in interactive mode so that we can open the container and see what is happening inside.
 - `--name <my-docker-container-name>` is to choose a name for our container.
 - `-v "$(pwd):/home/myuser/code"` creates a volume, which is a mounted folder between the host machine and the docker container itself. For instance here we are mounting the source code directory of our project, assuming it is the current working directory where we are running these commands (PS: `pwd` stands for print working directory), to the directory we already created in our [dockerfile](dockerfile) `/home/myuser/code`. You can create as many volumes as you want in this command, the more you need just add a new `-v` option with `/directory/on/host/machine:/directory/inside/docker/container` as input.
+- `--user $(id -u):$(id -g)` is to choose to run and execute your docker container with your user and group ID on the host machine. After the firsr run, everytime you will open your container it will be by default your user id and group id so you won't have to specify it everytime you execute a command on your container. You always have the choice to execute your container as root by specifying user and group id set to 0.
 - `<my-docker-image-name>:<my-tag>` should be replaced by the image your container is based on, the one you created before. Specifying a tag is not necessary, just if you already have one.
 - `<my-command>` is the command to be run once the container is created, usually set to `bash` to open a shell and see if setup of the container is correct.
 
