@@ -305,3 +305,45 @@ docker run -it <new-image-name>:<tag>
 ```
 Or without tag.
 Keep in mind that any changes done inside a docker container are saved inside that container but not the image, you YES you can override the image that created this container by simply committing to its name and overriding it.
+
+## Running a Jupyter Lab server with GPU support.
+
+dockerfile:
+```docker
+FROM tensorflow/tensorflow:2.16.1-gpu
+
+ARG USER_ID
+ARG GROUP_ID
+
+RUN groupadd -r -g $GROUP_ID myuser && useradd -r -u $USER_ID -g myuser -m -d /home/myuser myuser
+ENV SHELL=/bin/bash
+
+RUN mkdir -p /home/myuser/code && chown -R myuser:myuser /home/myuser/code
+
+WORKDIR /home/myuser/code
+
+RUN apt update
+RUN pip install --upgrade pip
+RUN pip install jupyterlab==4.2.6
+
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--allow-root"]
+```
+
+Build the image:
+```bash
+docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t <my-docker-image-name>:<my-tag> .
+```
+
+Run server :
+```bash    
+docker run --gpus all -it --name <my-docker-container-name> -v "$(pwd):/home/myuser/code" --user $(id -u):$(id -g) -p 8888:8888 <my-docker-image-name>:<my-tag>
+```
+
+Detach
+* CTRL+P
+* CTRL+Q
+
+Attach
+```bash
+docker attach <my-docker-container-name>
+```
