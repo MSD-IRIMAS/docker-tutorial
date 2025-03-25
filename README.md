@@ -334,7 +334,7 @@ Build the image:
 docker build --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) -t <my-docker-image-name>:<my-tag> .
 ```
 
-Run server :
+Run server first time:
 ```bash    
 docker run --gpus all -it --name <my-docker-container-name> -v "$(pwd):/home/myuser/code" --user $(id -u):$(id -g) -p 8888:8888 <my-docker-image-name>:<my-tag>
 ```
@@ -346,4 +346,11 @@ Detach
 Attach
 ```bash
 docker attach <my-docker-container-name>
+```
+
+Restart server after reboot:
+```bash
+docker ps -a
+# Find <my-docker-image-name> <CONTAINER ID>
+docker restart <CONTAINER ID>
 ```
