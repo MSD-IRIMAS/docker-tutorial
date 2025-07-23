@@ -175,7 +175,7 @@ An example dockerfile can be found [here](dockerfile)
 
 The first line in that dockerfile is the image we're based on:
 ```docker
-FROM tensorflow/tensorflow:2.16,1-gpu
+FROM tensorflow/tensorflow:2.16.1-gpu
 ```
 Here we are using tensorflow image, version `2.16.1` with GPU configuration. Keep in mind that the version of tensorflow you use in your dockerfile should be well alligned with the CUDA version you pulled in the previous section.
 
